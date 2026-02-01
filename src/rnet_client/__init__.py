@@ -5,7 +5,7 @@ try:
 except (ImportError, ModuleNotFoundError):
     raise ImportError('ВАЖНО ставить RC-релиз: `uv add --upgrade --prerelease allow rnet`')
 
-from _utils import _custom_redirects, _normalize_browser_param, _rnet_randomizer, Browsers
+from ._utils import _custom_redirects, _normalize_browser_param, _rnet_randomizer, Browsers
 
 
 def get_rnet_client(
