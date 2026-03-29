@@ -4,10 +4,10 @@ from re import compile
 from typing import TypedDict, get_args, Literal
 
 try:
-    from rnet import Emulation, EmulationOption, EmulationOS
-    from rnet.redirect import Attempt, Action, Policy
+    from wreq import Emulation, EmulationOption, EmulationOS
+    from wreq.redirect import Attempt, Action, Policy
 except (ImportError, ModuleNotFoundError):
-    raise ImportError('ВАЖНО ставить RC-релиз: `uv add --upgrade --prerelease allow rnet`')
+    raise ImportError('ВАЖНО установить: `uv add --upgrade wreq`')
 
 VERSION_PATTERN = compile(r"(\d+)(?:_(\d+))?(?:_(\d+))?")
 
@@ -23,11 +23,11 @@ class _EmulationMeta(TypedDict):
 
 class _EmulationRandomizer:
     """
-    утилита для случайного выбора профиля эмуляции из библиотеки rnet.
+    утилита для случайного выбора профиля эмуляции из библиотеки wreq.
 
-    класс анализирует доступные в `rnet.Emulation` профили, группирует их
+    класс анализирует доступные в `wreq.Emulation` профили, группирует их
     по семействам (браузер/платформа) и версиям, а затем позволяет выбрать
-    случайный профиль из числа последних версий для создания экземпляра `rnet.Client`.
+    случайный профиль из числа последних версий для создания экземпляра `wreq.Client`.
 
     Attributes:
         selected_os (str): название выбранной операционной системы после генерации опции.
@@ -49,7 +49,7 @@ class _EmulationRandomizer:
     @staticmethod
     def _get_all_emulations():
         """
-        извлекает все доступные эмуляции из класса `rnet.Emulation`.
+        извлекает все доступные эмуляции из класса `wreq.Emulation`.
 
         Returns:
             list[tuple[str, Emulation]]: список кортежей, где каждый содержит
@@ -185,7 +185,7 @@ class _EmulationRandomizer:
         генерирует и возвращает готовый объект `EmulationOption` со случайными параметрами.
 
         основной публичный метод для получения сконфигурированного объекта,
-        готового для передачи в конструктор `rnet.Client`.
+        готового для передачи в конструктор `wreq.Client`.
 
         Args:
             families (list[str] | None, optional): список семейств браузеров для выбора.
@@ -204,7 +204,7 @@ class _EmulationRandomizer:
         )
 
 
-_rnet_randomizer = _EmulationRandomizer()
+_wreq_randomizer = _EmulationRandomizer()
 
 
 def _normalize_browser_param(browser):

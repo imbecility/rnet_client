@@ -1,11 +1,11 @@
 from datetime import timedelta
 
 try:
-    from rnet import Client
+    from wreq import Client
 except (ImportError, ModuleNotFoundError):
-    raise ImportError('ВАЖНО ставить RC-релиз: `uv add --upgrade --prerelease allow rnet`')
+    raise ImportError('ВАЖНО установить: `uv add --upgrade wreq`')
 
-from ._utils import _custom_redirects, _normalize_browser_param, _rnet_randomizer, Browsers
+from ._utils import _custom_redirects, _normalize_browser_param, _wreq_randomizer, Browsers
 
 
 def get_rnet_client(
@@ -24,9 +24,9 @@ def get_rnet_client(
         zstd: bool = True,
 ) -> Client:
     """
-    создает и возвращает экземпляр `rnet.Client` с расширенными настройками.
+    создает и возвращает экземпляр `wreq.Client` с расширенными настройками.
 
-    функция-фабрика для создания экземпляра `rnet.Client` с предустановленными
+    функция-фабрика для создания экземпляра `wreq.Client` с предустановленными
     параметрами, включая случайную эмуляцию браузера из последних версий,
     кастомную политику обработки редиректов и оптимальные тайм-ауты.
 
@@ -56,10 +56,10 @@ def get_rnet_client(
        zstd (bool, optional): поддержка сжатия zstd. по умолчанию `True`.
 
     Returns:
-       Client: сконфигурированный экземпляр клиента `rnet.Client`, готовый к использованию.
+       Client: сконфигурированный экземпляр клиента `wreq.Client`, готовый к использованию.
     """
     kwargs = dict(
-        emulation=_rnet_randomizer.get_option(families=_normalize_browser_param(browser), latest_n=5),
+        emulation=_wreq_randomizer.get_option(families=_normalize_browser_param(browser), latest_n=5),
         redirect=_custom_redirects(max_redirects=max_redirects, ignore_in_redirects=ignore_in_redirects),
         cookie_store=True,
         tcp_reuse_address=True,

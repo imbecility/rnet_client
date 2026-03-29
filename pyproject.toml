@@ -3,13 +3,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 [project]
 name = "rnet-client"
-version = "0.0.2"
-description = "rnet client wrapper"
+version = "0.0.3"
+description = "wreq client wrapper"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
-    "rnet>=3.0.0rc20"
+    "wreq>=0.10.2"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
