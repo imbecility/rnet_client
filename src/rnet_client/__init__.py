@@ -64,7 +64,7 @@ def get_rnet_client(
         cookie_store=True,
         tcp_reuse_address=True,
         https_only=False,
-        verify=False,
+        tls_verify=False,
         connect_timeout=timedelta(seconds=connect_timeout),
         read_timeout=timedelta(seconds=read_timeout),
         pool_idle_timeout=timedelta(seconds=pool_idle_timeout),

@@ -8,7 +8,7 @@ on:
 
 
 env:
-  PYTHON_VERSION: "3.13"
+  PYTHON_VERSION: "3.14"
 
 jobs:
   prepare:
@@ -61,10 +61,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Проверка репозитория
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Установка Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -110,7 +110,7 @@ jobs:
           echo "Проверка пройдена"
 
       - name: Загрузка артефактов
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-package-distributions
           path: dist/
@@ -131,7 +131,7 @@ jobs:
       id-token: write  # Для Trusted Publishing (опционально)
     steps:
       - name: Скачивание артефактов
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: python-package-distributions
           path: dist/

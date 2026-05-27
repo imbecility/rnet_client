@@ -4,7 +4,7 @@ from re import compile
 from typing import TypedDict, get_args, Literal
 
 try:
-    from wreq import Emulation, EmulationOption, EmulationOS
+    from wreq import Emulation, Profile, Platform
     from wreq.redirect import Attempt, Action, Policy
 except (ImportError, ModuleNotFoundError):
     raise ImportError('ВАЖНО установить: `uv add --upgrade wreq`')
@@ -15,7 +15,7 @@ Browsers = Literal['Chrome', 'Edge', 'Firefox', 'SafariDesktop', 'iOS']
 
 
 class _EmulationMeta(TypedDict):
-    member: Emulation
+    member: Profile
     name: str
     category: str
     version: tuple[int, ...]
@@ -25,12 +25,12 @@ class _EmulationRandomizer:
     """
     утилита для случайного выбора профиля эмуляции из библиотеки wreq.
 
-    класс анализирует доступные в `wreq.Emulation` профили, группирует их
+    класс анализирует доступные в `wreq.Profile` профили, группирует их
     по семействам (браузер/платформа) и версиям, а затем позволяет выбрать
     случайный профиль из числа последних версий для создания экземпляра `wreq.Client`.
 
     Attributes:
-        selected_os (str): название выбранной операционной системы после генерации опции.
+        selected_os (Platform | str): выбранная платформа после генерации опции.
         selected_browser (str): название выбранного профиля браузера после генерации опции.
     """
 
@@ -43,24 +43,8 @@ class _EmulationRandomizer:
         """
         self._grouped_emulations: dict[str, list[_EmulationMeta]] = defaultdict(list)
         self._parse_and_group()
-        self.selected_os: str = 'Unknown'
+        self.selected_os: Platform | str = 'Unknown'
         self.selected_browser: str = 'Unknown'
-
-    @staticmethod
-    def _get_all_emulations():
-        """
-        извлекает все доступные эмуляции из класса `wreq.Emulation`.
-
-        Returns:
-            list[tuple[str, Emulation]]: список кортежей, где каждый содержит
-            имя атрибута и соответствующий ему объект эмуляции.
-        """
-        emulations = []
-        for attr_name in dir(Emulation):
-            if attr_name.startswith("_"): continue
-            val = getattr(Emulation, attr_name)
-            emulations.append((attr_name, val))
-        return emulations
 
     def _parse_and_group(self):
         """
@@ -72,14 +56,19 @@ class _EmulationRandomizer:
         """
         temp_items: list[_EmulationMeta] = []
 
-        all_members = self._get_all_emulations()
+        # использование dir() обеспечивает совместимость как со стандартными Enum,
+        # так и с нативными классами PyO3 на уровне среды выполнения.
+        for name in dir(Profile):
+            if name.startswith("_"):
+                continue
 
-        for name, member in all_members:
-            # фильтрация методов/служебных полей, если они попали
-            if not isinstance(name, str): continue
+            member = getattr(Profile, name)
+            if callable(member):
+                continue
 
             category = self._get_category(name)
-            if category == 'Unknown': continue
+            if category == 'Unknown':
+                continue
 
             v_match = VERSION_PATTERN.search(name)
             version_tuple = tuple(map(int, v_match.groups(default='0'))) if v_match else (0,)
@@ -108,18 +97,18 @@ class _EmulationRandomizer:
             str: строка с названием категории ('Chrome', 'iOS' и т.д.)
             или 'Unknown', если категория не определена.
         """
-        if 'OkHttp' in name: return 'AndroidNative'
-        if 'Android' in name: return 'AndroidBrowser'
-        if 'Ios' in name or 'IPad' in name: return 'iOS'
-        if name.startswith('Safari'): return 'SafariDesktop'
         if name.startswith('Chrome'): return 'Chrome'
         if name.startswith('Edge'): return 'Edge'
         if name.startswith('Firefox'): return 'Firefox'
         if name.startswith('Opera'): return 'Opera'
+        if 'OkHttp' in name: return 'AndroidNative'
+        if 'Android' in name: return 'AndroidBrowser'
+        if 'Ios' in name or 'IPad' in name: return 'iOS'
+        if name.startswith('Safari'): return 'SafariDesktop'
         return 'Unknown'
 
     @staticmethod
-    def _get_compatible_os(category: str) -> EmulationOS:
+    def _get_compatible_platform(category: str) -> Platform:
         """
         возвращает случайную совместимую операционную систему для указанной категории.
 
@@ -130,19 +119,19 @@ class _EmulationRandomizer:
             EmulationOS: случайный совместимый член перечисления `EmulationOS`.
         """
         mapping = {
-            'Chrome': [EmulationOS.Windows, EmulationOS.MacOS, EmulationOS.Linux],
-            'Edge': [EmulationOS.Windows, EmulationOS.MacOS],
-            'Firefox': [EmulationOS.Windows, EmulationOS.MacOS, EmulationOS.Linux],
-            'Opera': [EmulationOS.Windows, EmulationOS.MacOS],
-            'SafariDesktop': [EmulationOS.MacOS],
-            'iOS': [EmulationOS.IOS],
-            'AndroidNative': [EmulationOS.Android],
-            'AndroidBrowser': [EmulationOS.Android],
+            'Chrome': [Platform.Windows, Platform.MacOS, Platform.Linux],
+            'Edge': [Platform.Windows, Platform.MacOS],
+            'Firefox': [Platform.Windows, Platform.MacOS, Platform.Linux],
+            'Opera': [Platform.Windows, Platform.MacOS],
+            'SafariDesktop': [Platform.MacOS],
+            'iOS': [Platform.IOS],
+            'AndroidNative': [Platform.Android],
+            'AndroidBrowser': [Platform.Android],
         }
-        allowed_os = mapping.get(category, [EmulationOS.Windows])
-        return choice(allowed_os)
+        allowed_platforms = mapping.get(category, [Platform.Windows])
+        return choice(allowed_platforms)
 
-    def _pick_params(self, families, latest_n) -> tuple[Emulation, EmulationOS]:
+    def _pick_params(self, families: list[str] | None, latest_n: int) -> tuple[Profile, Platform]:
         """
         выбирает случайный профиль эмуляции и совместимую с ним ос.
 
@@ -174,15 +163,15 @@ class _EmulationRandomizer:
         candidates = available_items[-latest_n:]
         chosen_item = choice(candidates)
 
-        emulation_ver = chosen_item['member']  # сам объект Emulation
-        emulation_os = self._get_compatible_os(chosen_family)
+        profile = chosen_item['member']
+        platform = self._get_compatible_platform(chosen_family)
 
-        self.selected_os, self.selected_browser = emulation_os, chosen_item['name']
-        return emulation_ver, emulation_os
+        self.selected_os, self.selected_browser = platform, chosen_item['name']
+        return profile, platform
 
-    def get_option(self, families: list[str] | None = None, latest_n: int = 5) -> EmulationOption:
+    def get_option(self, families: list[str] | None = None, latest_n: int = 5) -> Emulation:
         """
-        генерирует и возвращает готовый объект `EmulationOption` со случайными параметрами.
+        генерирует и возвращает готовый объект `Emulation` со случайными параметрами.
 
         основной публичный метод для получения сконфигурированного объекта,
         готового для передачи в конструктор `wreq.Client`.
@@ -195,12 +184,12 @@ class _EmulationRandomizer:
                 для случайного выбора. по умолчанию 5.
 
         Returns:
-            EmulationOption: сконфигурированный объект с параметрами эмуляции.
+            Emulation: сконфигурированный объект с параметрами эмуляции.
         """
-        emulation_ver, emulation_os = self._pick_params(families, latest_n)
-        return EmulationOption(
-            emulation=emulation_ver,
-            emulation_os=emulation_os
+        profile, platform = self._pick_params(families, latest_n)
+        return Emulation(
+            profile=profile,
+            platform=platform
         )
 
 
